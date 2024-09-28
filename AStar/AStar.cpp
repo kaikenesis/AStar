@@ -3,6 +3,8 @@
 
 #include "framework.h"
 #include "AStar.h"
+#include "MyBlock.h"
+#include <vector>
 
 #define MAX_LOADSTRING 100
 
@@ -15,7 +17,10 @@ RECT rectView;
 HBITMAP hDoubleBufferImage;
 
 // A*
-void DrawSection();
+void CreateBlock();
+void UpdateBlock(HDC hdc);
+void DeleteBlock();
+std::vector<MyBlock*> blocks;
 
 // dfs로 도착점과, 출발점에서 이동가능한 경로에 코스트를 각자 매기고, 두 코스트의 합이 낮은곳으로 이동하면서 최단경로탐색
 
@@ -76,7 +81,7 @@ void DrawBitmap(HWND hWnd, HDC hdc)
     HBITMAP hOldBitmap;
     int bx, by;
 
-    
+    UpdateBlock(hdc);
 }
 
 void DrawBitmapDoubleBuffering(HWND hWnd, HDC hdc)
@@ -101,6 +106,32 @@ void DrawBitmapDoubleBuffering(HWND hWnd, HDC hdc)
 void DeleteBitmap()
 {
     DeleteObject(hDoubleBufferImage);
+}
+
+void CreateBlock()
+{
+    for (int i = rectView.top; i < rectView.bottom - 50; i += 50)
+    {
+        for (int j = rectView.left; j < rectView.right - 50; j += 50)
+        {
+            RECT rt = { j,i,j + 50,i + 50 };
+            MyBlock* block = new MyBlock(rt);
+            blocks.push_back(block);
+        }
+    }
+}
+
+void UpdateBlock(HDC hdc)
+{
+    for (int i = 0; i < blocks.size(); i++)
+        blocks[i]->Update(hdc);
+}
+
+void DeleteBlock()
+{
+    for (int i = 0; i < blocks.size(); i++)
+        delete blocks[i];
+    blocks.clear();
 }
 
 //
@@ -173,6 +204,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
         GetClientRect(hWnd, &rectView);
+        CreateBlock();
 
         break;
     case WM_COMMAND:
@@ -197,11 +229,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: Add any drawing code that uses hdc here...
+
+            DrawBitmapDoubleBuffering(hWnd, hdc);
+
             EndPaint(hWnd, &ps);
         }
         break;
     case WM_DESTROY:
         PostQuitMessage(0);
+        DeleteBlock();
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);

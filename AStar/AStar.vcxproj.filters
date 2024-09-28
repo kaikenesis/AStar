@@ -27,7 +27,7 @@
     <ClInclude Include="AStar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MyRect.h">
+    <ClInclude Include="MyBlock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -35,7 +35,7 @@
     <ClCompile Include="AStar.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MyRect.cpp">
+    <ClCompile Include="MyBlock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
