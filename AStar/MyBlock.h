@@ -2,7 +2,7 @@
 
 #include "framework.h"
 
-enum BlockState
+enum BlockType
 {
 	Default,
 	Start,
@@ -18,20 +18,26 @@ private:
 	RECT rect;
 
 public:
-	int costFromStart;
-	int costFromEnd;
-	int costTotal;
+	int costFromStart = 0;
+	int costFromEnd = 0;
+	int costTotal = 0;
 
-	BlockState blockState;
+	BlockType blockType;
 
 public:
 	MyBlock(RECT inRect);
 	MyBlock();
 	~MyBlock();
 
+	double GetWidth() { return rect.right - rect.left; }
+	double GetHeight() { return rect.bottom - rect.top; }
+
 	void Init(HDC hdc);
 	void Update(HDC hdc);
 
 	void Draw(HDC hdc);
+	void ResetCost();
+	POINT GetPosition();
+	BOOL isContainer(double inX, double inY);
 };
 

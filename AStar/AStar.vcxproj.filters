@@ -30,12 +30,18 @@
     <ClInclude Include="MyBlock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AStarSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AStar.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MyBlock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AStarSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

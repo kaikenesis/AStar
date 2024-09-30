@@ -3,24 +3,23 @@
 
 #include "framework.h"
 #include "AStar.h"
-#include "MyBlock.h"
-#include <vector>
+#include "AStarSystem.h"
+#include <windowsx.h>
 
 #define MAX_LOADSTRING 100
 
 // DoubleBuffer
 void DrawBitmap(HWND hWnd, HDC hdc);
 void DrawBitmapDoubleBuffering(HWND hWnd, HDC hdc);
-void DeleteBitmap();
+void DestroyBitmap();
 
 RECT rectView;
 HBITMAP hDoubleBufferImage;
 
 // A*
-void CreateBlock();
-void UpdateBlock(HDC hdc);
-void DeleteBlock();
-std::vector<MyBlock*> blocks;
+
+
+#define TIMER_ASTAR 1
 
 // dfs로 도착점과, 출발점에서 이동가능한 경로에 코스트를 각자 매기고, 두 코스트의 합이 낮은곳으로 이동하면서 최단경로탐색
 
@@ -73,72 +72,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     return (int) msg.wParam;
 }
 
-
-
-void DrawBitmap(HWND hWnd, HDC hdc)
-{
-    HDC hMemDC;
-    HBITMAP hOldBitmap;
-    int bx, by;
-
-    UpdateBlock(hdc);
-}
-
-void DrawBitmapDoubleBuffering(HWND hWnd, HDC hdc)
-{
-    HDC hDoubleBufferDC;
-    HBITMAP hOldDoubleBufferBitmap;
-
-    hDoubleBufferDC = CreateCompatibleDC(hdc);
-    if (hDoubleBufferImage == NULL)
-    {
-        hDoubleBufferImage = CreateCompatibleBitmap(hdc, rectView.right, rectView.bottom);
-    }
-    hOldDoubleBufferBitmap = (HBITMAP)SelectObject(hDoubleBufferDC, hDoubleBufferImage);
-
-    DrawBitmap(hWnd, hDoubleBufferDC);
-
-    BitBlt(hdc, 0, 0, rectView.right, rectView.bottom, hDoubleBufferDC, 0, 0, SRCCOPY);
-    SelectObject(hDoubleBufferDC, hOldDoubleBufferBitmap);
-    DeleteDC(hDoubleBufferDC);
-}
-
-void DeleteBitmap()
-{
-    DeleteObject(hDoubleBufferImage);
-}
-
-void CreateBlock()
-{
-    for (int i = rectView.top; i < rectView.bottom - 50; i += 50)
-    {
-        for (int j = rectView.left; j < rectView.right - 50; j += 50)
-        {
-            RECT rt = { j,i,j + 50,i + 50 };
-            MyBlock* block = new MyBlock(rt);
-            blocks.push_back(block);
-        }
-    }
-}
-
-void UpdateBlock(HDC hdc)
-{
-    for (int i = 0; i < blocks.size(); i++)
-        blocks[i]->Update(hdc);
-}
-
-void DeleteBlock()
-{
-    for (int i = 0; i < blocks.size(); i++)
-        delete blocks[i];
-    blocks.clear();
-}
-
-//
-//  FUNCTION: MyRegisterClass()
-//
-//  PURPOSE: Registers the window class.
-//
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
     WNDCLASSEXW wcex;
@@ -160,16 +93,6 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     return RegisterClassExW(&wcex);
 }
 
-//
-//   FUNCTION: InitInstance(HINSTANCE, int)
-//
-//   PURPOSE: Saves instance handle and creates main window
-//
-//   COMMENTS:
-//
-//        In this function, we save the instance handle in a global variable and
-//        create and display the main program window.
-//
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Store instance handle in our global variable
@@ -188,25 +111,69 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
-//
-//  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  PURPOSE: Processes messages for the main window.
-//
-//  WM_COMMAND  - process the application menu
-//  WM_PAINT    - Paint the main window
-//  WM_DESTROY  - post a quit message and return
-//
-//
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    static POINT mousePos = { 0,0 };
+    static TCHAR str[128] = { 0 };
+    static bool bRBPressed = false;
+
     switch (message)
     {
     case WM_CREATE:
         GetClientRect(hWnd, &rectView);
-        CreateBlock();
+        CreateBlock(rectView);
+        SetTimer(hWnd, TIMER_ASTAR, 33, NULL);
+
+        mousePos.x = GET_X_LPARAM(lParam);
+        mousePos.y = GET_Y_LPARAM(lParam);
 
         break;
+    case WM_CHAR:
+        switch (wParam)
+        {
+        case 49: SetWallMode(Create);   break;
+        case 50: SetWallMode(Destroy);  break;
+        }
+
+        break;
+    case WM_LBUTTONDOWN:
+        /*
+            왼쪽 클릭으로 start, dest 결정
+            첫클릭에 start, 두번째에 dest, 둘다 존재한다면 return, 다시 클릭하면 default
+            start나 dest중 1개만 선택되어 있는 상태로 default를 클릭 시 선택이 안된 상태로 변경
+        */ 
+        ChangeBlockType(mousePos.x, mousePos.y, DrawPoint);
+        CalculateCost();
+        break;
+    case WM_RBUTTONDOWN:
+        // 오른쪽 클릭한 상태에선 마우스 위치의 block을 wall로 변경
+        bRBPressed = true;
+        
+        break;
+    case WM_RBUTTONUP:
+        bRBPressed = false;
+        break;
+    case WM_TIMER:
+        switch (wParam)
+        {
+        case TIMER_ASTAR:
+        {
+            if (bRBPressed == true)
+            {
+                ChangeBlockType(mousePos.x, mousePos.y, DrawWall);
+                CalculateCost();
+            }
+        }
+            InvalidateRgn(hWnd, NULL, FALSE);
+            break;
+        }
+
+        break;
+    case WM_MOUSEMOVE:
+        mousePos.x = GET_X_LPARAM(lParam);
+        mousePos.y = GET_Y_LPARAM(lParam);
+        break;
+
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -232,12 +199,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             DrawBitmapDoubleBuffering(hWnd, hdc);
 
+            wsprintf(str, _T("x : %d | y : %d"), mousePos.x, mousePos.y);
+            DrawText(hdc, str, lstrlen(str), &rectView, DT_LEFT);
+
             EndPaint(hWnd, &ps);
         }
         break;
     case WM_DESTROY:
-        PostQuitMessage(0);
         DeleteBlock();
+        PostQuitMessage(0);
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -264,3 +234,36 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
+
+void DrawBitmap(HWND hWnd, HDC hdc)
+{
+    // drawMap
+    {
+        UpdateBlock(hdc);
+    }
+}
+
+void DrawBitmapDoubleBuffering(HWND hWnd, HDC hdc)
+{
+    HDC hDoubleBufferDC;
+    HBITMAP hOldDoubleBufferBitmap;
+
+    hDoubleBufferDC = CreateCompatibleDC(hdc);
+    if (hDoubleBufferImage == NULL)
+    {
+        hDoubleBufferImage = CreateCompatibleBitmap(hdc, rectView.right, rectView.bottom);
+    }
+    hOldDoubleBufferBitmap = (HBITMAP)SelectObject(hDoubleBufferDC, hDoubleBufferImage);
+
+    DrawBitmap(hWnd, hDoubleBufferDC);
+
+    BitBlt(hdc, 0, 0, rectView.right, rectView.bottom, hDoubleBufferDC, 0, 0, SRCCOPY);
+    SelectObject(hDoubleBufferDC, hOldDoubleBufferBitmap);
+    DeleteDC(hDoubleBufferDC);
+}
+
+void DestroyBitmap()
+{
+    DeleteObject(hDoubleBufferImage);
+}
+
