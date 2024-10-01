@@ -25,8 +25,8 @@ struct Node
 
 struct Huristic
 {
-	int movingDist;			// 현재까지 이동한 거리
-	float predictionDist;	// 휴리스틱 가중치
+	float movingDist;
+	float predictionDist;
 };
 
 bool operator < (const POINT& lhs, const POINT& rhs);
@@ -41,5 +41,4 @@ void SetWallMode(WallMode mode);
 
 void ChangeBlockType(double inX, double inY, DrawType type);
 void CalculateCost();
-std::vector<POINT> AStar(POINT inPos);
-//void DfsDestToStart();
+BOOL AStar(POINT inPos);

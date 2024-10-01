@@ -37,7 +37,5 @@ public:
 
 	void Draw(HDC hdc);
 	void ResetCost();
-	POINT GetPosition();
-	BOOL isContainer(double inX, double inY);
 };
 

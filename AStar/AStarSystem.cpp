@@ -103,27 +103,17 @@ void ChangeBlockType(double inX, double inY, DrawType newType)
 
 void CalculateCost()
 {
-    if (isStart == false || isDest == false)
-    {
-        for (int i = 0; i < col; i++)
-            for (int j = 0; j < row; j++)
-                blocks[i][j]->ResetCost();
-        return;
-    }
+    for (int i = 0; i < col; i++)
+        for (int j = 0; j < row; j++)
+            blocks[i][j]->ResetCost();
 
-    vector<POINT> path = AStar(destBlock);
-    /*for (int i = 0; i < path.size(); i++)
-    {
-        
-    }*/
-
+    if (isStart == true && isDest == true)
+        AStar(destBlock);
 }
 
 // inPos -> 도착지점
-vector<POINT> AStar(POINT inPos)
+BOOL AStar(POINT inPos)
 {
-    vector<POINT> resultPath;
-
     priority_queue<pair<Huristic, Node>, vector< pair<Huristic, Node>>, greater< pair<Huristic, Node>>> openQ;
     map<POINT, POINT> closeQ;
     
@@ -157,33 +147,51 @@ vector<POINT> AStar(POINT inPos)
             if (nx >= 0 && nx < row && ny >= 0 && ny < col)
             {
                 if (blocks[ny][nx]->blockType == Wall || closeQ.find({ nx,ny }) != closeQ.end()) continue;
-
+                
                 Huristic huristic;
                 Node nextNode;
-
+                
                 int deltaX = nx - inPos.x;
                 int deltaY = ny - inPos.y;
                 float directDist = sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                deltaX = nx - x;
+                deltaY = ny - y;
+                float moveDist = sqrt(deltaX * deltaX + deltaY * deltaY);
 
-                huristic.movingDist = curHuristic.movingDist + 1;
-                huristic.predictionDist = directDist;
+                huristic.movingDist = curHuristic.movingDist + moveDist;    // 출발점에서부터 다음 이동할 위치까지의 이동거리 (g)
+                huristic.predictionDist = directDist;                       // 도착점에서부터 다음 이동할 위치까지의 직선거리, Huristic 가중치 (h)
 
                 nextNode.curPos = { nx,ny };
                 nextNode.prevPos = { x,y };
+
+                if (blocks[ny][nx]->blockType != Dest) blocks[ny][nx]->blockType = Candidate;
+                if (blocks[ny][nx]->costTotal == 0 || blocks[ny][nx]->costTotal > (huristic.movingDist * 10) + (huristic.predictionDist * 10))
+                {
+                    blocks[ny][nx]->costFromStart = huristic.movingDist * 10;
+                    blocks[ny][nx]->costFromEnd = huristic.predictionDist * 10;
+                    blocks[ny][nx]->costTotal = (huristic.movingDist * 10) + (huristic.predictionDist * 10);
+                }
 
                 openQ.push({ huristic, nextNode });
             }
         }
     }
-    
-    POINT location = startBlock;
-    while (location.x != -1)
-    {
-        resultPath.push_back(location);
-        location = closeQ[location];
-    }
 
-    return resultPath;
+    if (closeQ.find(inPos) != closeQ.end())
+    {
+        POINT location = inPos;
+        while (location.x != -1)
+        {
+            if (blocks[location.y][location.x]->blockType != Start && blocks[location.y][location.x]->blockType != Dest)
+                blocks[location.y][location.x]->blockType = Path;
+            location = closeQ[location];
+        }
+    }
+    else
+        return false;
+
+    return true;
 }
 
 bool operator<(const POINT& lhs, const POINT& rhs)

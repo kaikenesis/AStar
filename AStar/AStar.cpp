@@ -16,9 +16,6 @@ void DestroyBitmap();
 RECT rectView;
 HBITMAP hDoubleBufferImage;
 
-// A*
-
-
 #define TIMER_ASTAR 1
 
 // dfs로 도착점과, 출발점에서 이동가능한 경로에 코스트를 각자 매기고, 두 코스트의 합이 낮은곳으로 이동하면서 최단경로탐색
@@ -114,7 +111,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static POINT mousePos = { 0,0 };
-    static TCHAR str[128] = { 0 };
     static bool bRBPressed = false;
 
     switch (message)
@@ -137,16 +133,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         break;
     case WM_LBUTTONDOWN:
-        /*
-            왼쪽 클릭으로 start, dest 결정
-            첫클릭에 start, 두번째에 dest, 둘다 존재한다면 return, 다시 클릭하면 default
-            start나 dest중 1개만 선택되어 있는 상태로 default를 클릭 시 선택이 안된 상태로 변경
-        */ 
         ChangeBlockType(mousePos.x, mousePos.y, DrawPoint);
         CalculateCost();
+
         break;
     case WM_RBUTTONDOWN:
-        // 오른쪽 클릭한 상태에선 마우스 위치의 block을 wall로 변경
         bRBPressed = true;
         
         break;
@@ -198,9 +189,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // TODO: Add any drawing code that uses hdc here...
 
             DrawBitmapDoubleBuffering(hWnd, hdc);
-
-            wsprintf(str, _T("x : %d | y : %d"), mousePos.x, mousePos.y);
-            DrawText(hdc, str, lstrlen(str), &rectView, DT_LEFT);
 
             EndPaint(hWnd, &ps);
         }
